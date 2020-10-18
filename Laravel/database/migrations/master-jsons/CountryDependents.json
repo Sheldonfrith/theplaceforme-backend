@@ -1,0 +1,57 @@
+{
+    "australia": [
+        "norfolk island",
+        "christmas island"
+    ],
+    
+    "china": [
+        "hong kong",
+        "macao",
+        "macau",
+        "macao sar, china"
+    ],
+    "france": [
+        "french guiana",
+        "guadeloupe",
+        "martinique",
+        "mayotte",
+        "new caledonia",
+        "reunion",
+        "saint martin",
+        "saint pierre and miquelon",
+        "saint pierre & miquelon",
+        "wallis and futuna",
+        "wallis et futuna",
+        "wallis & futuna"
+    ],
+    "new zealand": [
+        "tokelau"
+    ],
+    "palestine": ["west bank","gaza strip","west bank and gaza"],
+    "russia": ["russian federation"],
+    "sint maarten": ["sint maarten (dutch part)"],
+    "slovakia": ["slovak republic"],
+    "syria": ["syrian arab republic"],
+    "united kingdom": [
+        "saint helena",
+        "saint helena, ascension, and tristan da cunha",
+        "st. helena",
+        "st helena",
+        "bermuda",
+        "montserrat",
+        "pitcairn islands   "
+    ],
+    "united states": [
+        "american samoa",
+        "guam",
+        "northern mariana islands",
+        "puerto rico",
+        "united states virgin islands",
+        "us virgin islands",
+        "u.s. virgin islands",
+        "virgin islands of the united states",
+        "american virgin islands"
+    ],
+    "venezuela": ["venezuela, rb"],
+    "yemen": ["yemen, rep."]
+}
