@@ -13,24 +13,24 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    // dd('test');
-    return view('welcome');
-});
+// Route::get('/', function () {
+//     // dd('test');
+//     return view('welcome');
+// });
 
 
-Route::get('/register',function(){
-    return view('auth/register');
-})->name('register');
+// Route::get('/register',function(){
+//     return view('auth/register');
+// })->name('register');
 
-Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function () {
-    return Inertia\Inertia::render('Dashboard');
-})->name('dashboard');
+// Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function () {
+//     return Inertia\Inertia::render('Dashboard');
+// })->name('dashboard');
 
-Route::middleware(['auth:sanctum', 'verified'])->get('/data-input', function(){
-    return Inertia\Inertia::render('DataInput');
-})->name('data-input');
+// Route::middleware(['auth:sanctum', 'verified'])->get('/data-input', function(){
+//     return Inertia\Inertia::render('DataInput');
+// })->name('data-input');
 
-Route::middleware(['auth:sanctum', 'verified'])->get('/questionaire', function(){
-    return Inertia\Inertia::render('Questionaire');
-})->name('questionaire');
+// Route::middleware(['auth:sanctum', 'verified'])->get('/questionaire', function(){
+//     return Inertia\Inertia::render('Questionaire');
+// })->name('questionaire');
