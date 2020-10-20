@@ -13,8 +13,8 @@
                    <div>Direct, unvalidated json input</div>
                    <textarea type="text" placeholder="json here" v-model="directjson"/>
                    <button v-on:click="submitJSON">Submit JSON</button>
-                   <div>Error Messages:</div>
-                   <div></div>
+                   <div>API Response:</div>
+                   <div>{{apiResponseCode}} ... {{apiResponseBody}}</div>
                 </div>
             </div>
         </div>
@@ -31,7 +31,8 @@
             return {
                 directjson: '',
                 csrf: document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                
+                apiResponseCode:'',
+                apiResponseBody: '',
             };
         },
         methods: {
@@ -46,7 +47,16 @@
                         'X-CSRF-TOKEN':vm.csrf,
                         },
                     body: vm.directjson,
-                }).then(res => console.log(res));
+                }).then(async res => {
+                    vm.apiResponseCode = res.status;
+                    const body = await res.text();
+                    vm.apiResponseBody = body;
+                    return body;
+                })
+                .then(data=>{
+                    console.log('data:',data);
+                    })
+                .catch(error=>console.log(error));
             }
         }
     }

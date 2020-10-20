@@ -13,6 +13,23 @@ use Illuminate\Support\Facades\Log;
 
 class DatasetsController extends Controller
 {
+    protected $possibleCategories = [
+        'demographics',
+        'geography',
+        'violence',
+        'religion',
+        'government',
+        'economics',
+        'immigration',
+        'culture',
+        'health',
+        'environment',
+        'travel',
+        'education',
+        'housing',
+        'technology',
+        'uncategorized',
+    ];
     /**
      * Display a listing of the resource.
      *
@@ -31,7 +48,8 @@ class DatasetsController extends Controller
             'source_description',
             'unit_description',
             'notes',
-            'category'
+            'category',
+            'distribution_map',
         )->where('id','!=',null)->get();
         return response()->json($responseObject,200);
     }
@@ -79,7 +97,7 @@ class DatasetsController extends Controller
             'country_id_type' => 'required|string',
             'unit_description'=>'required|string',
             'notes' => 'nullable|string',
-            'category'=>'required|string',
+            'category'=>['required','string',Rule::in($this->possibleCategories)],
         ]);
         if ($validator->fails()){
             return response()->json($validator->messages(),400);
@@ -148,17 +166,32 @@ class DatasetsController extends Controller
         } else {
             $countyData = $body;
         }
-        //calculate the min/max values if the datatype is numeric
+        //calculate the min/max values if the datatype is numeric or boolean
         if ($data_type==='float' || $data_type==='double' || $data_type==='integer'){
             //data type IS numeric
             //remove null values before calculating min and max
             $deNullified = array_diff($body, array(null));
             $minValue = min($deNullified);
             $maxValue = max($deNullified);
+        } elseif($data_type==='boolean') {
+            $minValue = false;
+            $maxValue = true;
         } else {
             $minValue = null;
             $maxValue = null;
         }
+        //calculate the distribution map of the dataset
+        //this is done by dividing the total dataset (from min_value to max_value)
+        //into 101 equally distributed ranges (0% -100%)
+        //and counting how many countries fall into each range
+        //then outputting the total country count for each range into 100-item simple list
+        $distributionMap = array_fill(0,101,0);
+        foreach ($deNullified as $value){
+            $index = null;
+            $index = (int) round(($value-$minValue)*100.0/($maxValue-$minValue)); //index is the percentage of the value relative to the dataset range rounded to nearest integer
+            $distributionMap[$index] ++;
+        }
+        
         //Send the new dataset to the database
         Dataset::create(array_merge([
             'long_name' => $meta['long_name'],
@@ -170,6 +203,7 @@ class DatasetsController extends Controller
             'unit_description' => $meta['unit_description'],
             'notes'=> @$meta['notes'],
             'category' => $meta['category'],
+            'distribution_map' => $distributionMap,
         ],$countryData));
 
         //send a response indicating success
@@ -221,5 +255,9 @@ class DatasetsController extends Controller
     public function destroy($id)
     {
         //
+    }
+
+    public function listPossibleCategories(){
+        return response()->json($this->possibleCategories,200);
     }
 }

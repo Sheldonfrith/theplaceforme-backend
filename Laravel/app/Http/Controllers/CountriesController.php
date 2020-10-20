@@ -20,7 +20,7 @@ class CountriesController extends Controller
             'alpha_three_code',
             'alpha_two_code',
             'numeric_code',
-            'primary_name',
+            'primary_name', 
         )->where('alpha_three_code','!=',null)->get();
         return response()->json($responseObject,200);
     }

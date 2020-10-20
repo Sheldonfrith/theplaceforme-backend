@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Redirect;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,13 +21,15 @@ use App\Http\Controllers\ScoresController;
 
 //index page
 Route::get('/',function(){
-    return 'nothing here';
+    return Redirect::to('https://github.com/Sheldonfrith/theplaceforme-backend/wiki/API-Documentation');
 });
 //resources
 Route::resource('datasets',DatasetsController::class);
 Route::resource('countries',CountriesController::class);
 //get scores
 Route::post('/scores',[ScoresController::class,'getScores'])->name('get-scores');
+Route::get('/missing-data-handler-methods',[ScoresController::class,'getMissingDataHandlerMethods'])->name('get-missing-data-handler-methods');
+Route::get('/categories',[DatasetsController::class,'listPossibleCategories'])->name('get-categories');
 
 // Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 //     return $request->user();
