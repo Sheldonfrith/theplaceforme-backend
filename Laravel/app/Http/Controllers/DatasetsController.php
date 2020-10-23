@@ -26,7 +26,6 @@ class DatasetsController extends Controller
         'environment',
         'travel',
         'education',
-        'housing',
         'technology',
         'uncategorized',
     ];
@@ -50,6 +49,7 @@ class DatasetsController extends Controller
             'notes',
             'category',
             'distribution_map',
+            'missing_data_percentage',
         )->where('id','!=',null)->get();
         return response()->json($responseObject,200);
     }

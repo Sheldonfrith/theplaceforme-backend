@@ -19,8 +19,49 @@ class MissingDataHandler {
         'specificScore',
         'specificValue',
     ];
+    protected $masterMethodObject =[
+        'average'=> [
+            'formattedName' => 'Average',
+            'requiresInput' => false,
+            'description' => 'Countries with missing data get the average score of all the countries that did have data.',
+        ],
+        'median'=> [
+            'formattedName' => 'Median',
+            'requiresInput' => false,
+            'description' => 'Countries with missing data get the middle-most score of all countries that did have data.'
+        ],
+        'mostFrequent'=>[
+            'formattedName' => 'Most Frequent',
+            'requiresInput' => false,
+            'description' => 'Countries with missing data get the most frequently occuring score of all countries that did have data.'
+        ],
+        'worseThanPercentage'=>[
+            'formattedName' => 'Worse-Than Percentage',
+            'requiresInput' => true,
+            'description' => 'Countries with missing data will get a score worse than X percent of all countries that did have data.'
+        ],
+        'betterThanPercentage'=>[
+            'formattedName'=> 'Better-Than Percentage',
+            'requiresInput' => true,
+            'description' => 'Countries with missing data will get a score better than X percent of all countries that did have data.'
+        ],
+        'specificScore'=>[
+            'formattedName' => 'Specific Score',
+            'requiresInput' => true,
+            'description' => 'Countries with missing data will get a score of X'
+        ],
+        'specificValue'=>[
+            'formattedName' => 'Specific Value',
+            'requiresInput' => true,
+            'description' => 'Countries with missing data will be treated as if they did have data and that data was equal to X.'
+        ]
+        ];
+
     public function arrayWithAll(){
         return $this->masterMethodList;
+    }
+    public function objectWithAll(){
+        return $this->masterMethodObject;
     }
     function median($numbers=array()){
         if (!is_array($numbers))
@@ -107,7 +148,10 @@ class DatasetScores {
     protected $datasetType;
     protected $idealValue;
     protected $customScoreFunction;
+
     protected $finalScores;
+    protected $finalDataWasMissing;
+
     protected $countriesWithData;
     protected $countriesWithoutData;
     protected $dataMagnitude;
@@ -163,6 +207,11 @@ class DatasetScores {
         $this->countriesWithoutData = array_filter($countriesData, function ($value){
             return $value === null;
         });
+        //can immediately populate the finalDataWasMissing list
+        foreach($countriesData as $country => $data){
+            $this->finalDataWasMissing[$country] = ($data===null);
+        }
+
         //if missingdatahandlermethod is 'specificvalue'
         //then we need to apply that value to all countries missing data right away
         //so that the scores can be calculated to include that data value
@@ -190,7 +239,26 @@ class DatasetScores {
     }
     //primary return function
     public function getScoresObject(){
-        return $this->finalScores;
+        //compile the data into the final structure
+        //calculate the ranks and percentiles for each country
+        //at the same time        
+        arsort($this->finalScores);
+        $currentRank = 1;
+        $returnObject = [];
+        foreach ($this->finalScores as $country =>$score){
+            $percentile = ($currentRank/(count($rankingArray)+1.0))*100.0;
+            $returnObject[$country] = [
+                'score'=> $score,
+                'rank'=> $currentRank,
+                'percentile'=> $percentile,
+                'dataWasMissing'=>$this->finalDataWasMissing[$country]
+            ];
+            $currentRank++;
+        }
+        return $returnObject;
+    }
+    public function getRanksObject(){
+
     }
     //DEFAULT calculation type entry point
     function calculateScoresDefault(){
@@ -281,6 +349,9 @@ class ScoresController extends Controller
     //containing all country alpha-three-codes as keys
     //each country key holds another object that countains
     //the country's primary name, total score, the relative ranking, and the per-dataset score breakdown for this country
+    //! ABOVE Is OUTDATED
+    //! SEE the github wiki for theplaceforme-backend > API DOCUMENTATION for the required
+    //!input and output object formats for this controller
     public static function getScores(Request $request){
         //input object must be in this form:
         // [{
@@ -369,7 +440,9 @@ class ScoresController extends Controller
                 'primary_name'=>$country['primary_name'],
                 'totalScore'=>0,
                 'rank'=>0,
-                'scoreBreakdown'=>[],
+                'percentile'=>0,
+                'categoryBreakdown'=>[],
+                'scoreBreakdown'=>[]
             ];
 
         }
@@ -401,13 +474,22 @@ class ScoresController extends Controller
             // Log::info($responseObject);
             foreach ($scores as $country=>$score){
                 //set this data to the per-dataset score breakdown
-                $responseObject[$country]['scoreBreakdown'][$id] = $score;
+                $responseObject[$country]['scoreBreakdown'][$id] = $score; //sets the 'score', 'rank', 'percentage', et.c all at once
+                //update the category breakdowns
+                $currentCategoryScore = $responseObject[$country]['categoryBreakdown'][$dataset['category']];
+                if ($currentCategoryScore){
+                    //its initialized, just add the new score to it
+                    $responseObject[$country]['categoryBreakdown'][$dataset['category']] = $currentCategoryScore + $score['score'];
+                }else {
+                    //initialize it with this score
+                    $responseObject[$country]['categoryBreakdown'][$dataset['category']] = $score['score'];
+                }
                 //add this data to the overall total score for each country
                 $responseObject[$country]['totalScore'] +=$score;
             }
         }
 
-        //Final step: get relative rankings for each country now that they all have final scores
+        //get relative rankings for each country now that they all have final scores
         //first get a list with just the total scores, and country codes as keys
         $rankingArray ;
         foreach($countries as $country){
@@ -419,8 +501,13 @@ class ScoresController extends Controller
         $currentRank = 1;
         foreach($rankingArray as $country => $score){
         $responseObject[$country]['rank'] = $currentRank;
+        //get the percentile also
+        $percentile = ($currentRank/(count($rankingArray)+1.0))*100.0;
+        $responseObject[$country]['percentile'] = $percentile;
         $currentRank ++;
         }
+        
+
 
         //now return the response object
         return response()->json($responseObject,200);
@@ -428,7 +515,7 @@ class ScoresController extends Controller
 
     public function getMissingDataHandlerMethods(Request $request){
         $missingDataHandler = new MissingDataHandler();
-        $methodsList = $missingDataHandler->arrayWithAll();
+        $methodsList = $missingDataHandler->objectWithAll();
         return response()->json($methodsList,200);
     }
 }

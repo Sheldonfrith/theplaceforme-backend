@@ -38,6 +38,8 @@ class Dataset extends Model
         'notes',
         'unit_description',
         'category',
+        'distribution_map',
+        'missing_data_percentage',
         "afg",
 "ala",
 "alb",
