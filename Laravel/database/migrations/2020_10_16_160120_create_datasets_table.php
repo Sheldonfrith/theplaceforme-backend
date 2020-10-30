@@ -26,6 +26,7 @@ class CreateDatasetsTable extends Migration
             $table->text('notes')->nullable()->default(null);
             $table->text('category');
             $table->json('distribution_map');
+            $table->double('missing_data_percentage');
             //for each country in the master list...
             $countries = App\Models\Country::all();
             foreach ($countries as $country){

@@ -151,7 +151,7 @@ class DatasetScores {
 
     protected $finalScores;
     protected $finalDataWasMissing;
-
+    protected $countryCount;
     protected $countriesWithData;
     protected $countriesWithoutData;
     protected $dataMagnitude;
@@ -180,14 +180,14 @@ class DatasetScores {
         $this->datasetType = $originalDataset['data_type'];
         $this->idealValue = $idealValue;
         $this->customScoreFunction = $customScoreFunction;
-        $this->dataMagnitute = abs($originalDataset['max_value']-$originalDataset['min_value']);
+        $this->dataMagnitude = abs($originalDataset['max_value']-$originalDataset['min_value']);
         $this->datasetWeight = $weight;
         $this->normalizationPercentage = $normalizationPercentage;
         $this->maxInitScore = 100; // represents precentage
         $this->countryCodes = array_map(function($value){
             return $value['alpha_three_code'];
         },Country::select('alpha_three_code')->where('alpha_three_code','!=',null)->get()->toArray());
-
+        $this->countryCount = count($this->countryCodes);
 
         // first separate the meta fields from the actual country data
         $metaFields = array_filter($originalDataset,function($key){
@@ -246,7 +246,7 @@ class DatasetScores {
         $currentRank = 1;
         $returnObject = [];
         foreach ($this->finalScores as $country =>$score){
-            $percentile = ($currentRank/(count($rankingArray)+1.0))*100.0;
+            $percentile = 100-(($currentRank/($this->countryCount+1.0))*100.0);
             $returnObject[$country] = [
                 'score'=> $score,
                 'rank'=> $currentRank,
@@ -287,7 +287,7 @@ class DatasetScores {
         // multiply the score by the weight
         //MAX SCORE is 100*100 (10,000) which would be 100 weight x 100% similarity to ideal value
 
-        $onePercent = ($this->dataMagnitute*1.0)/$this->maxInitScore;
+        $onePercent = ($this->dataMagnitude*1.0)/$this->maxInitScore;
         $percentSimilarity = $this->maxInitScore-(abs($specificValue - $this->idealValue)*1.0)/$onePercent;
         return $percentSimilarity;
     }
@@ -411,6 +411,7 @@ class ScoresController extends Controller
             $validator = Validator::make($dataset,
             [
                 'id' => ['required',Rule::in($possibleDatasetIDs)],
+                'category' => ['required','string'],
                 'weight' => ['required','integer','min:0','max:100'],
                 'idealValue'=>[
                     // Rule::required_if(empty($dataset['customScoreFunction']))//!change when implementing customScoreFunction
@@ -457,7 +458,7 @@ class ScoresController extends Controller
             $idealValue = $dataset['idealValue'];
             $customScoreFunction = $dataset['customScoreFunction'];
             $missingDataHandlerMethod = $dataset['missingDataHandlerMethod'];
-            $missingDataHandlerInput = $dataset['missingDataHandlerInput'];
+            $missingDataHandlerInput = array_key_exists('missingDataHandlerInput',$dataset)?$dataset['missingDataHandlerInput']:null;
             $normalizationPercentage = $dataset['normalizationPercentage'];
             //get the scores for this dataset
             $scoreCalculator = new DatasetScores(
@@ -470,13 +471,18 @@ class ScoresController extends Controller
                 $normalizationPercentage,
             );
             $scores = $scoreCalculator->getScoresObject();
+
             //push the scores for this dataset
-            // Log::info($responseObject);
+            // Log::info($scores);
             foreach ($scores as $country=>$score){
                 //set this data to the per-dataset score breakdown
                 $responseObject[$country]['scoreBreakdown'][$id] = $score; //sets the 'score', 'rank', 'percentage', et.c all at once
                 //update the category breakdowns
+                $currentCategoryScore = false;
+                if (isset($responseObject[$country]['categoryBreakdown'][$dataset['category']])){
+
                 $currentCategoryScore = $responseObject[$country]['categoryBreakdown'][$dataset['category']];
+                }
                 if ($currentCategoryScore){
                     //its initialized, just add the new score to it
                     $responseObject[$country]['categoryBreakdown'][$dataset['category']] = $currentCategoryScore + $score['score'];
@@ -485,7 +491,8 @@ class ScoresController extends Controller
                     $responseObject[$country]['categoryBreakdown'][$dataset['category']] = $score['score'];
                 }
                 //add this data to the overall total score for each country
-                $responseObject[$country]['totalScore'] +=$score;
+                // Log::info($score);
+                $responseObject[$country]['totalScore'] += $score['score'];
             }
         }
 
@@ -502,7 +509,7 @@ class ScoresController extends Controller
         foreach($rankingArray as $country => $score){
         $responseObject[$country]['rank'] = $currentRank;
         //get the percentile also
-        $percentile = ($currentRank/(count($rankingArray)+1.0))*100.0;
+        $percentile = 100-(($currentRank/(count($rankingArray)+1.0))*100.0);
         $responseObject[$country]['percentile'] = $percentile;
         $currentRank ++;
         }
