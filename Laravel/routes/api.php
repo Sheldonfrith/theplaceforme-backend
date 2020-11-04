@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\DatasetsController;
 use App\Http\Controllers\CountriesController;
 use App\Http\Controllers\ScoresController;
+use App\Http\Controllers\SavedScoresInputsController;
 
 //index page
 Route::get('/',function(){
@@ -28,6 +29,7 @@ Route::resource('datasets',DatasetsController::class);
 Route::resource('countries',CountriesController::class);
 //get scores
 Route::post('/scores',[ScoresController::class,'getScores'])->name('get-scores');
+Route::get('/scores',[ScoresController::class,'getSavedScoresInputs'])->name('get-saved-scores-inputs');
 Route::get('/missing-data-handler-methods',[ScoresController::class,'getMissingDataHandlerMethods'])->name('get-missing-data-handler-methods');
 Route::get('/categories',[DatasetsController::class,'listPossibleCategories'])->name('get-categories');
 

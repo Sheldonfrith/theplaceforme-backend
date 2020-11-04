@@ -8,6 +8,7 @@ use App\Models\Dataset;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use App\Models\SavedScoresInput;
 
 class MissingDataHandler {
     protected $masterMethodList = [
@@ -343,95 +344,13 @@ class DatasetScores {
     }
 }
 
+
 class ScoresController extends Controller
 {
-    //this responds with an object
-    //containing all country alpha-three-codes as keys
-    //each country key holds another object that countains
-    //the country's primary name, total score, the relative ranking, and the per-dataset score breakdown for this country
-    //! ABOVE Is OUTDATED
-    //! SEE the github wiki for theplaceforme-backend > API DOCUMENTATION for the required
-    //!input and output object formats for this controller
-    public static function getScores(Request $request){
-        //input object must be in this form:
-        // [{
-        //     id: '',
-        //     weight: '',
-                //if weight is zero the dataset will be excluded from all score calculations
-                //range of 0-100
-        //     idealValue: '',
-                //if this is set then we will do our own score calculation
-                //cannot set both ideal value and customScoreFunction, its one or the other
-                // must be within the min/max values for the dataset
-        //     customScoreFunction: '',
-                // a function that accepts a single input
-                //(the current country's value for this dataset)
-                //and returns an output score based on that
-        //     missingDataHandlerMethod: '',
-                //tells us how to handle the score calculation
-                //when a country is missing data
-                //possible methods include:
-                    //average (set countries with no data to the average score of countries that did have data)
-                    //median (set the countries with no data to the median of the countries that did have data)
-                    //worseThanPercentage (set countries with no data to have lower scores (-1 lower) than X percent of
-                            //countries that did have data... X determined by missingDataHandlerInput);
-                    //betterThanPercentage (set countries with no data to have higher scores (+1 higher) than X percent of
-                            //countries that did have data... X dertermind by missingDataHandlerInput);
-                    //specificScore (set countries with no data to have a specific score always, score
-                            // set by missingDataHandlerInput);
-                    //specificValue (set countries with no data to have a specific data value for the dataset
-                            //and then calculate the score the same as all the countries that did have data);
-                    //mostFrequent (set country's with missing data's score to be the same as the most frequent score
-                            //among the countries that did have data)
-                    //
-        //     missingDataHandlerInput: '',
-                //used to pass parameters for more
-                //advanced missingDataHandlerMethods (above)
-        //     normalizationPercentage: 
-                //used to determine how much normalization should be applied to the dataset prior to score calculation
-        // },
-        // {next dataset...}
-        // ]
+
+    //utility function used by both /scores POST and /scores GET
+    protected function CalculateScores($inputDatasets){
         
-
-        //!SETUP
-        $inputDatasets = $request->all();
-        //!Validation
-        $possibleDatasetIDs = array_map(function($arr){return $arr['id'];},Dataset::select('id')->whereNotNull('id')->get()->toArray());
-        $maxAndMinFromDB = Dataset::select('id','max_value','min_value')->whereNotNull('id')->get()->toArray();//array of arrays, the sub arrays have string keys and values as values
-        $maxAndMinValues;
-        //convert the sql return array into more use-able format with id's as keys
-        foreach ($maxAndMinFromDB as $subArray){
-            $maxAndMinValues[$subArray['id']] = ['max_value'=>$subArray['max_value'],'min_value'=>$subArray['min_value']];
-        }
-        $missingDataHandler = new MissingDataHandler();
-        $possibleMissingDataHandlerMethods = $missingDataHandler->arrayWithAll();
-        //validate per dataset
-        foreach ($inputDatasets as $dataset){
-            $validator = Validator::make($dataset,
-            [
-                'id' => ['required',Rule::in($possibleDatasetIDs)],
-                'category' => ['required','string'],
-                'weight' => ['required','integer','min:0','max:100'],
-                'idealValue'=>[
-                    // Rule::required_if(empty($dataset['customScoreFunction']))//!change when implementing customScoreFunction
-                    'numeric'
-                    ,'max:'.$maxAndMinValues[$dataset['id']]['max_value']
-                    ,'min:'.$maxAndMinValues[$dataset['id']]['min_value']
-                ],
-                // 'customScoreFunction' => ['nullable']//!add customScoreFunction when able
-                'missingDataHandlerMethod'=>['required',Rule::in($possibleMissingDataHandlerMethods)],
-                'missingDataHandlerInput'=>['nullable'],
-                'normalizationPercentage'=>['required','integer','min:0','max:100'],
-            ]);
-            if ($validator->fails()){
-                return response()->json($validator->messages(),400);
-            }
-        }
-        
-
-
-
         $responseObject = [];//see above the function for description of this object
         //populate the response object with each country and their names
         $countries = Country::select('alpha_three_code','primary_name')->where('alpha_three_code','!=',null)->get();
@@ -513,11 +432,163 @@ class ScoresController extends Controller
         $responseObject[$country]['percentile'] = $percentile;
         $currentRank ++;
         }
+        return $responseObject;
+    }
+
+    //this responds with an object
+    //containing all country alpha-three-codes as keys
+    //each country key holds another object that countains
+    //the country's primary name, total score, the relative ranking, and the per-dataset score breakdown for this country
+    //! ABOVE Is OUTDATED
+    //! SEE the github wiki for theplaceforme-backend > API DOCUMENTATION for the required
+    //!input and output object formats for this controller
+    public function getScores(Request $request){
+        //request body
+        $inputDatasets = $request->json()->all();
+        // Query params
+        $emptyResponse = $request->query('empty_response', false);
+        $shouldSave = $request->query('save', true);
+        $saveName = $request-> query('name',null);
+        $saveDescription = $request->query('description', null);
+        $saveUserID = $request->query('user_id',null);
+        $saveDomain = $request->root();
+
+        // Log::info($emptyResponse);
+        // Log::info($shouldSave);
+        // Log::info($saveName);
+        // Log::info($saveDomain);
+        //!SAVE THE REQUEST
+        //!Should save?
+        if ($shouldSave === false || $shouldSave === 'false'){
+            //dont save
+        } else {
+            //DO save
+            SavedScoresInput::create([
+                'domain' => $saveDomain,
+                'name' => $saveName,
+                'description' => $saveDescription,
+                'user_id' =>$saveUserID,
+                'object' => $inputDatasets,
+            ]);
+        }
+
+
+        //!EMPTY RESPONSE?
+        if ($emptyResponse === true || $emptyResponse === 'true'){
+            return;
+        }
+
+        //!CALCULATE SCORES AND RETURN THEM
+        //!SETUP
         
-
-
+        //!Validation
+        $possibleDatasetIDs = array_map(function($arr){return $arr['id'];},Dataset::select('id')->whereNotNull('id')->get()->toArray());
+        $maxAndMinFromDB = Dataset::select('id','max_value','min_value')->whereNotNull('id')->get()->toArray();//array of arrays, the sub arrays have string keys and values as values
+        $maxAndMinValues;
+        //convert the sql return array into more use-able format with id's as keys
+        foreach ($maxAndMinFromDB as $subArray){
+            $maxAndMinValues[$subArray['id']] = ['max_value'=>$subArray['max_value'],'min_value'=>$subArray['min_value']];
+        }
+        $missingDataHandler = new MissingDataHandler();
+        $possibleMissingDataHandlerMethods = $missingDataHandler->arrayWithAll();
+        //validate per dataset
+        foreach ($inputDatasets as $dataset){
+            $validator = Validator::make($dataset,
+            [
+                'id' => ['required',Rule::in($possibleDatasetIDs)],
+                'category' => ['required','string'],
+                'weight' => ['required','integer','min:0','max:100'],
+                'idealValue'=>[
+                    // Rule::required_if(empty($dataset['customScoreFunction']))//!change when implementing customScoreFunction
+                    'numeric'
+                    ,'max:'.$maxAndMinValues[$dataset['id']]['max_value']
+                    ,'min:'.$maxAndMinValues[$dataset['id']]['min_value']
+                ],
+                // 'customScoreFunction' => ['nullable']//!add customScoreFunction when able
+                'missingDataHandlerMethod'=>['required',Rule::in($possibleMissingDataHandlerMethods)],
+                'missingDataHandlerInput'=>['nullable'],
+                'normalizationPercentage'=>['required','integer','min:0','max:100'],
+            ]);
+            if ($validator->fails()){
+                return response()->json($validator->messages(),400);
+            }
+        }
+        
+        //! end of validation
+        //! calculate scores
+        $responseObject = $this->CalculateScores($inputDatasets);
+        
         //now return the response object
         return response()->json($responseObject,200);
+    }
+
+
+
+
+
+    public function getSavedScoresInputs (Request $request){
+        //get query params
+        $noScores = $request->query('no_scores',false);
+        $id = $request->query('id',null);
+        $domain = $request->query('domain',null);
+        $domainIncludes = $request->query('domain_includes',null);
+        $userID = $request->query('user_id',null);
+        $name = $request->query('name',null);
+        //attempt to retrieve by id
+        // get the whole row from the database
+        $thisSavedScoresInput = null;
+        if ($id) $thisSavedScoresInput = SavedScoresInput::where('id',$id)->get()[0];
+        // Log::info($thisSavedScoresInput);
+        if ($thisSavedScoresInput){
+            //! get single savedScoreInput
+            //return is array with three objects
+                //! return [0] item = ScoresInput metadata
+                $returnList = [];
+                $returnList[0] = [
+                    'id' => $thisSavedScoresInput['id'],
+                    'created_at' => $thisSavedScoresInput['created_at'],
+                    'domain' =>$thisSavedScoresInput['domain'],
+                    'name' => $thisSavedScoresInput['name'],
+                    'description' => $thisSavedScoresInput['description'],
+                    'user_id' => $thisSavedScoresInput['user_id'],
+                ];
+    
+                //! return [1] item = ScoresInput 'object' field from database
+                $returnList[1] = $thisSavedScoresInput['object'];
+
+                //!calculate and return scores ? return [2]
+                if ($noScores && $noScores !=='false'){
+                    //!DONT calculate or return scores
+                    $returnList[2] = null;
+                } else {
+                    //!should calculate and return scores
+                    $returnList[2] = $this->CalculateScores($returnList[1]);
+                }
+                //RESPOND 
+                return response()->json($returnList,200);
+        } else {
+            //! get list of savedScoresInputs?
+            //TODO restrict this list based on the API key / authorization of the user requesting
+            //restrict based on query params
+             //create the where conditions list
+             $whereConditions = [];
+             if ($domain) array_push($whereConditions, ['domain',$domain]);
+             if ($domainIncludes) array_push($whereConditions, ['domain','like','%'+$domainIncludes+'%']);
+             if ($userID) array_push($whereConditions, ['user_id',$userID]);
+             if ($name) array_push($whereConditions,['name',$name]);
+             
+             $thisSavedScoresInput = SavedScoresInput::select(
+                'id',
+                'created_at',
+                'domain',
+                'name',
+                'description',
+                'user_id',
+            )->where($whereConditions)->get();
+
+            return response()->json($thisSavedScoresInput,200);
+        }
+        return response()->text('could not locate any Scores Inputs records corresponding to your input parameters',400);
     }
 
     public function getMissingDataHandlerMethods(Request $request){

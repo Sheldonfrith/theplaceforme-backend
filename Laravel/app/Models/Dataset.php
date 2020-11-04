@@ -275,6 +275,7 @@ class Dataset extends Model
      * @var array
      */
     protected $casts = [
+        'distribution_map' => 'array'
     ];
 
     /**
