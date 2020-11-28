@@ -31,7 +31,7 @@ Route::resource('countries',CountriesController::class);
 Route::post('/scores',[ScoresController::class,'getScores'])->name('get-scores');
 Route::get('/scores',[ScoresController::class,'getSavedScoresInputs'])->name('get-saved-scores-inputs');
 Route::get('/missing-data-handler-methods',[ScoresController::class,'getMissingDataHandlerMethods'])->name('get-missing-data-handler-methods');
-Route::get('/categories',[DatasetsController::class,'listPossibleCategories'])->name('get-categories');
+Route::get('/categories',[CategoriesController::class,'getAllowedNames'])->name('get-categories');
 
 // Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 //     return $request->user();

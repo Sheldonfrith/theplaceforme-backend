@@ -15,6 +15,10 @@ class EventServiceProvider extends ServiceProvider
      * @var array
      */
     protected $listen = [
+        'App\Events\DatasetSubmitted'=>[
+            'App\Listeners\CleanDatasetFormatting',
+            'App\Listeners\UpdateDatasetCalculatedFields',
+             'App\Listeners\SendAdminNotification'],
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
