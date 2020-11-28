@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\AbstractRequest;
 use Illuminate\Validation\Rule;
 use App\Models\Country;
 
-class PostDatasetRequest extends FormRequest
+class PostDatasetRequest extends AbstractRequest
 {
     /**
      * Determine if the user is authorized to make this request.

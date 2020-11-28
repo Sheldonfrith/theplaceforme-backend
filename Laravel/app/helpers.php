@@ -14,3 +14,10 @@ if (! function_exists('convertSQLTypeToValidatorType')) {
         }
     }
 }
+if (! function_exists('arrayFilterGetBoth')){
+    function arrayFilterGetBoth($inputArray, $testingFunction){
+    $passingArray = array_filter($inputArray,$testingFunction,ARRAY_FILTER_USE_BOTH);
+    $failingArray = array_diff($inputArray, $passingArray);
+    return [$passingArray, $failingArray];
+};
+}
