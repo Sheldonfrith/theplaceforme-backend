@@ -10,18 +10,26 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use App\Models\SavedScoresInput;
 use App\Http\Requests\PostScoresRequest;
-use App\BusinessLogic\CountryScores;
+use App\BusinessLogic\CountryScores\ScoresResponseObject;
 use App\Http\Resources\ScoresInputMetadata as ScoresInputMetadataResource;
+use App\Models\MissingDataHandler;
+use App\Http\Resources\MissingDataHandlers as MissingDataHandlersResource;
 
 class ScoresController extends Controller
 {
-    public function getScores(PostScoresRequest $request)
+    public function getMissingDataHandlerMethods(Request $request){
+            return MissingDataHandlersResource::collection(MissingDataHandler::all()->keyBy->method_name);
+        
+    }
+    public function postScores(PostScoresRequest $request)
     { //should be a POST request to /scores
+        $validated  = $request->validated();
         $shouldSave = $request->query('save', true);
         if ($shouldSave === true) (new SavedScoresInput())->saveRequest($request);
         $emptyResponse = $request->query('empty_response', false);
         if ($emptyResponse) return;
-        $responseObject = (new CountryScores())->calculateScores($request->json()->all());
+        $responseObject = (new ScoresResponseObject($request->json()->all()))->get();
+        Log::info('$responseObject');
         return response()->json($responseObject, 200);
     }
 
@@ -34,12 +42,14 @@ class ScoresController extends Controller
         if ($validIDProvided) return $this->respondWithSingleSavedScoresInput($id, $noScores);
         return $this->respondWithListOfSavedScoresInputs($request);
     }
+
+
     protected function respondWithSingleSavedScoresInput($id, bool $noScores)
     {
         $thisSavedScoresInput = SavedScoresInput::where('id', $id)->get();
         $savedScoresInputMetadata = new ScoresInputMetadataResource($thisSavedScoresInput);
         $savedScoresInputOriginalRequest = $thisSavedScoresInput['object'];
-        $newCalculatedScores = (!$noScores) ? (new CountryScores())->calculateScores($savedScoresInputOriginalRequest) : null;
+        $newCalculatedScores = (!$noScores) ? (new ScoresResponseObject($savedScoresInputOriginalRequest))->get() : null;
         $responseObject = [
             $savedScoresInputMetadata,
             $savedScoresInputOriginalRequest,
@@ -47,6 +57,7 @@ class ScoresController extends Controller
         ];
         return response()->json($responseObject, 200);
     }
+
     protected function respondWithListOfSavedScoresInputs(Request $request)
     {
         $queryParams = [
@@ -70,4 +81,5 @@ class ScoresController extends Controller
         if (!$responseList)  return response()->text('could not locate any Scores Inputs records corresponding to your input parameters', 400);
         return response()->json($responseList, 200);
     }
+    
 }

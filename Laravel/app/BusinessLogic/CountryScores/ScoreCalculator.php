@@ -17,6 +17,7 @@ class ScoreCalculator
     {
         $this->countryContext = $countryContext;
         $this->scoresInputContext = $scoresInputContext;
+        $this->countryScoresByCategory = array_fill_keys(config('constants.categories.allowed_names'), []);
         $this->calculate();
     }
     public function getCountryCodesWithScores()
@@ -26,7 +27,7 @@ class ScoreCalculator
     protected function calculate(): void
     {
         foreach ($this->scoresInputContext->getActiveDatasetIDs() as $datasetID) {
-            $thisCategory = $this->scoresInputContext->getDatasetCategoryById();
+            $thisCategory = $this->scoresInputContext->getDatasetCategoryById($datasetID);
             $thisDatasetScores = $this->getScoresByCountryCode($datasetID);
             $thisCategoryExistingScores = $this->countryScoresByCategory[$thisCategory];
             $this->countryDataWasMissingByDataset[$datasetID] = (new DatasetContext($datasetID, $this->countryContext))->getCountryNamesWithoutData();
@@ -64,6 +65,7 @@ class ScoreCalculator
         foreach ($this->countryContext->getAllCountryCodes() as $countryCode) {
             $returnObject[$countryCode] = $this->getDatasetBreakdowns($countryCode);
         }
+        return $returnObject;
     }
     protected function getDatasetBreakdowns($countryCode)
     {
@@ -72,12 +74,12 @@ class ScoreCalculator
         $percentileCalculator = new PercentileCalculator();
         foreach ($this->scoresInputContext->getActiveDatasetIDs() as $datasetID) {
             $ranks = $rankCalculator->arrayReplaceValuesWithRanks(true, $this->countryScoresByDataset[$datasetID]);
-            $percentiles = $percentileCalculator->arrayReplaceValuesWithPercentiles(true, $this);
+            $percentiles = $percentileCalculator->arrayReplaceValuesWithPercentiles(true, $this->countryScoresByDataset[$datasetID]);
             $returnObject[$datasetID] = [
                 'score' => $this->countryScoresByDataset[$datasetID][$countryCode],
                 'rank' => $ranks[$countryCode],
                 'percentile' => $percentiles[$countryCode],
-                'dataWasMissing' => $this->countryDataWasMissingByDataset[$datasetID][$countryCode],
+                'dataWasMissing' => in_array($countryCode, $this->countryDataWasMissingByDataset[$datasetID])
             ];
         }
         return $returnObject;
@@ -98,9 +100,15 @@ class ScoreCalculator
     {
         $returnObject = [];
         foreach ($this->countryScoresByCategory as $category => $countryScores) {
-            $returnObject[$category] = array_filter($countryScores, function ($key) use ($countryCode) {
-                return ($key === $countryCode);
-            }, ARRAY_FILTER_USE_KEY);
+            $thereIsData = (count($countryScores) > 0);
+            $totalScoreForThisCategory = 0;
+            if ($thereIsData) {
+                $thisCountrysScores = array_filter($countryScores, function ($key) use ($countryCode) {
+                    return ($key === $countryCode);
+                }, ARRAY_FILTER_USE_KEY);
+                $totalScoreForThisCategory = array_sum($thisCountrysScores);
+            }
+            $returnObject[$category] = $totalScoreForThisCategory;
         }
         return $returnObject;
     }

@@ -14,7 +14,7 @@ class CountriesController extends Controller
      */
     public function index()
     {
-        return new CountriesResource(Country::get());
+        return CountriesResource::collection(Country::all());
     }
 
     /**

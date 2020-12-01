@@ -29,4 +29,7 @@ return [
             'float','double','integer'
         ]
         ],
+    'scores'=>[
+        'max_non_normalized_score'=>1000,
+    ]
 ];

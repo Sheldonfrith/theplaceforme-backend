@@ -2,6 +2,8 @@
 
 namespace App\BusinessLogic\CountryScores;
 
+use Illuminate\Support\Facades\Log;
+
 class ScoresInputContext
 {
     protected $inputObject;
@@ -22,7 +24,7 @@ class ScoresInputContext
         //active dataset meaning datasets with weight >0
         $idList = [];
         foreach ($this->inputObject as $object) {
-            if ($object['weigth'] > 0) array_push($idList, $object['id']);
+            if ($object['weight'] > 0) array_push($idList, $object['id']);
         }
         return $idList;
     }

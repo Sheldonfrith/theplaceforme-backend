@@ -14,16 +14,17 @@ class RankCalculator
     }
     public function arrayReplaceValuesWithRanks(bool $higherValsAreBetter, $array)
     {
-        $arrayCopy = clone ($array);
         if ($higherValsAreBetter) {
-            arsort($arrayCopy);
+            arsort($array);
         } else {
-            asort($arrayCopy);
+            asort($array);
         } // first values are the highest ranking always
         $rank = 0;
-        return array_map(function ($val) use ($rank) {
+        $returnArray = [];
+        foreach($array as $key=>$val){
             $rank++;
-            return $rank;
-        }, $arrayCopy);
+            $returnArray[$key]=$rank;
+        }
+        return $returnArray;
     }
 }

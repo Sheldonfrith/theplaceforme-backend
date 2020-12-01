@@ -4,7 +4,7 @@ namespace App\BusinessLogic\CountryScores;
 
 use Illuminate\Support\Arr;
 use App\Models\Dataset;
-
+use Illuminate\Support\Facades\Log;
 class DatasetContext
 {
     protected $wholeDataset;
@@ -18,7 +18,7 @@ class DatasetContext
     public function __construct($datasetID, $countryContext)
     {
         $this->countryContext = $countryContext;
-        $this->wholeDataset = Dataset::where('id', $datasetID)->get()->toArray();
+        $this->wholeDataset = Dataset::where('id', $datasetID)->get()->toArray()[0];
         [$this->metadata, $this->countriesData] = $this->separateMetadataFromCountryData($this->wholeDataset, $this->countryContext->getAllCountryCodes());
         [$this->countriesWithData, $this->countriesWithoutData] = arrayFilterGetBoth($this->countriesData, function ($val, $key) {
             return $val !== null;
@@ -33,6 +33,9 @@ class DatasetContext
     {
         return $this->countriesWithData;
     }
+    public function getDatasetMagnitude(){
+        return $this->dataMagnitude;
+    }
     public function getCountryNamesWithoutData()
     {
         [$keys, $vals] = Arr::divide($this->countriesWithoutData);
@@ -42,8 +45,10 @@ class DatasetContext
     {
         //1st object in return array is metada, second is the rest
         $testingFunction = function ($val, $key) use ($countryCodes) {
-            return (in_array($key, $countryCodes)) ? false : true;
+            $isACountryField = (in_array($key,$countryCodes));
+            return $isACountryField ? false : true;
         };
+        // Log::info($dataset, $countryCodes);
         return arrayFilterGetBoth($dataset, $testingFunction);
     }
 }

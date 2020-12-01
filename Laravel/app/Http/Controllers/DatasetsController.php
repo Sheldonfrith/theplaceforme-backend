@@ -20,7 +20,7 @@ class DatasetsController extends Controller
      */
     public function index()
     {
-        return new DatasetsMetaResource(Dataset::get());
+        return DatasetsMetaResource::collection(Dataset::all());
     }
 
     /**

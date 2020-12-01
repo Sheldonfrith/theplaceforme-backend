@@ -20,11 +20,10 @@ class PercentileCalculator
     }
     public function arrayReplaceValuesWithPercentiles(bool $higherValsAreBetter, $array)
     {
-        $arrayCopy = clone ($array);
-        $min = min($arrayCopy);
-        $max = max($arrayCopy);
+        $min = min($array);
+        $max = max($array);
         return array_map(function ($val) use ($min, $max, $higherValsAreBetter) {
             return $this->getPercentile($higherValsAreBetter, $min, $max, $val);
-        }, $arrayCopy);
+        }, $array);
     }
 }

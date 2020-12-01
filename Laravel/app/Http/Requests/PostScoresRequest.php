@@ -6,7 +6,7 @@ use App\Http\Requests\AbstractRequest;
 use Illuminate\Validation\Rule;
 use App\Models\Dataset;
 use App\Models\MissingDataHandler;
-
+use Illuminate\Support\Facades\Log;
 class PostScoresRequest extends AbstractRequest
 {
     /**
@@ -16,18 +16,18 @@ class PostScoresRequest extends AbstractRequest
      */
     public function authorize()
     {
-        return false;
+        return true;
     }
 
 
-    protected $routeParametersToValidate = [];
-    protected $queryParametersToValidate = [
-        'empty_response' => 'empty_response',
-        'save'=>'save', 
-        'name'=>'save_name',
-        'description'=>'save_description',
-        'user_id'=>'user_id',
-];
+    // protected $routeParametersToValidate = [];
+//     protected $queryParametersToValidate = [
+//         'empty_response' => 'empty_response',
+//         'save'=>'save', 
+//         'name'=>'save_name',
+//         'description'=>'save_description',
+//         'user_id'=>'user_id',
+// ];
     /**
      * Get the validation rules that apply to the request.
      *
@@ -35,25 +35,33 @@ class PostScoresRequest extends AbstractRequest
      */
     public function rules()
     {
-        $possibleDatasetIDs = Dataset::select('id')->whereNotNull('id')->get()->toArray();
-        $possibleMissingDataHandlerMethods = MissingDataHandler::select('method_name')->get()->toArray();
-        $id = $this->json()->id;
-        $maxValue = Dataset::where('id',$id)->select('max_value')->get()->toArray()['max_value'];
-        $minValue = Dataset::where('id',$id)->select('min_value')->get()->toArray()['min_value'];
-        return [
-            'id' =>['required',Rule::in($possibleDatasetIDs)],
-            'category' =>['required','string'],
-            'weight' =>['required','integer','min:0','max:100'],
-            'idealValue'=>['numeric','max:'.$maxValue,'min:'.$minValue,],
-            'missingDataHandlerMethod'=>['required',Rule::in($possibleMissingDataHandlerMethods)],
-            'missingDataHandlerInput'=>['nullable'],
-            'normalizationPercentage'=>['required','integer','min:0','max:100'],
-            //query params
-            'empty_response'=>['nullable','boolean'],
-            'save'=>['nullable','boolean'],
-            'save_name'=>['nullable','string'],
-            'save_description'=>['nullable','string'],
-            'user_id'=>['nullable','string'],
+        $possibleMissingDataHandlerMethods = MissingDataHandler::pluck('method_name');
+        $possibleDatasetIDs = Dataset::pluck('id');
+        $universalRules = [
+            '*.id' =>['required',Rule::in($possibleDatasetIDs)],
+                '*.category' =>['required','string'],
+                '*.weight' =>['required','integer','min:0','max:100'],
+                '*.missingDataHandlerMethod'=>['required',Rule::in($possibleMissingDataHandlerMethods)],
+                '*.missingDataHandlerInput'=>['nullable'],
+                '*.normalizationPercentage'=>['required','integer','min:0','max:100'],
         ];
+        // $queryRules= [//query params
+        //     'empty_response'=>['nullable','boolean'],
+        //     'save'=>['nullable','boolean'],
+        //     'save_name'=>['nullable','string'],
+        //     'save_description'=>['nullable','string'],
+        //     'user_id'=>['nullable','string'],
+        // ];
+        $minVals = Dataset::pluck('min_value','id')->toArray();
+        $maxVals = Dataset::pluck('max_value','id')->toArray();
+        $dynamicRules = [];
+        foreach ($this->request as $key=>$val){
+            $id = $val['id'];
+            $dynamicRules[$key.'.idealValue'] =['numeric','max:'.$maxVals[$id],'min:'.$minVals[$id]] ;
+            // array_merge($universalRules, [
+               
+            // ]);
+        }
+        return array_merge($universalRules, $dynamicRules);
     }
 }

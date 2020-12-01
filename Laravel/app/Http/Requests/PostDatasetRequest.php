@@ -45,7 +45,7 @@ class PostDatasetRequest extends AbstractRequest
             'meta.source_description' => [empty($this->json['meta']['source_link']) ? 'required' : 'nullable', 'string'],
         ];
     }
-    protected function getMetaFieldsValidationRules()
+    protected function getCountriesValidationRules()
     {
         $dataTypeValidationName = convertSQLTypeToValidatorType($this->json['meta']['data_type']);
         $countries = Country::all()->where('alpha_three_code', '!=', null);

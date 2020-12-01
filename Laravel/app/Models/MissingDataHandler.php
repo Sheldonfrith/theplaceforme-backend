@@ -11,12 +11,12 @@ class MissingDataHandler extends Model
 {
     use HasFactory;
     protected $methodFunctions;
-    public function getScore(array $params)
+    public function getScore($params)
     { //may mutate the params.existingScores by sorting them
-        $existingScores = $params->existingScores;
-        $method = $params->method;
-        $inputValue = $params->inputValue;
-        $dataType = $params->dataType || 'numeric'; //NOT USED CURRENTLY, AS THERE IS NO SUPPORT FOR NON NUMERIC DATA TYPES
+        $existingScores = $params['existingScores'];
+        $method = $params['method'];
+        $inputValue = $params['inputValue'];
+        $dataType = $params['dataType'] || 'numeric'; //NOT USED CURRENTLY, AS THERE IS NO SUPPORT FOR NON NUMERIC DATA TYPES
         asort($existingScores); //sorted smallest to largest
         return (int) $this->methodFunctions[$method]($existingScores, $inputValue);
     }

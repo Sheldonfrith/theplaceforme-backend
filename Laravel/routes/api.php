@@ -28,10 +28,10 @@ Route::get('/',function(){
 Route::resource('datasets',DatasetsController::class);
 Route::resource('countries',CountriesController::class);
 //get scores
-Route::post('/scores',[ScoresController::class,'getScores'])->name('get-scores');
-Route::get('/scores',[ScoresController::class,'getSavedScoresInputs'])->name('get-saved-scores-inputs');
-Route::get('/missing-data-handler-methods',[ScoresController::class,'getMissingDataHandlerMethods'])->name('get-missing-data-handler-methods');
-Route::get('/categories',[CategoriesController::class,'getAllowedNames'])->name('get-categories');
+Route::post('/scores',[ScoresController::class,'postScores']);
+Route::get('/scores',[ScoresController::class,'getSavedScoresInputs']);
+Route::get('/missing-data-handler-methods',[ScoresController::class,'getMissingDataHandlerMethods']);
+Route::get('/categories',[CategoriesController::class,'getAllowedNames']);
 
 // Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 //     return $request->user();

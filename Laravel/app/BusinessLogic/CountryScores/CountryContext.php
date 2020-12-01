@@ -7,17 +7,19 @@ use Illuminate\Support\Arr;
 
 class CountryContext
 {
-    public $allCountryCodes;
-    public $countryCount;
+    protected $allCountryCodes;
+    protected $countryCount;
     public function _construct()
     {
         $this->allCountryCodes = $this->getAllCountryCodes();
         $this->countryCount = count($this->allCountryCodes);
     }
-    protected function getAllCountryCodes()
+    public function getAllCountryCodes()
     {
-        $unformatted = Country::select('alpha_three_code')->get()->toArray();
-        [$keys, $values] = Arr::divide($unformatted)[1];
-        return $values;
+        if ($this->allCountryCodes && count($this->allCountryCodes)>0) return $this->allCountryCodes;
+        return Country::pluck('alpha_three_code')->toArray();
+    }
+    public function getCountryCount(){
+        return $this->countryCount;
     }
 }

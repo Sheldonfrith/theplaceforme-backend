@@ -3,7 +3,7 @@ namespace App\BusinessLogic\CountryScores;
 
 
 use App\Models\MissingDataHandler;
-
+use Illuminate\Support\Facades\Log;
 
 class SingleDatasetCalculator
 {
@@ -17,12 +17,12 @@ class SingleDatasetCalculator
     public function __construct($datasetID, $countryContext, $scoresInputContext)
     {
         $this->dc = new DatasetContext($datasetID, $countryContext);
-        $this->countriesWithData = clone ($this->dc->getCountriesWithData());
-        $this->countriesWithoutData = clone ($this->dc->getCountriesWithoutData());
+        $this->countriesWithData = $this->dc->getCountriesWithData();
+        $this->countriesWithoutData = $this->dc->getCountriesWithoutData();
         $this->countryContext = $countryContext;
         $this->sc = $scoresInputContext->getDatasetByID($datasetID);
-        $shouldCalculateMissingDataScoresFirst = ($this->sc->missingDataHandlerMethod == 'specificValue' && $this->sc->missingDataHandlerInput);
-        $this->calculateMissingDataScoresFirst();
+        $shouldCalculateMissingDataScoresFirst = ($this->sc['missingDataHandlerMethod'] == 'specificValue' && $this->sc['missingDataHandlerInput']);
+        if ($shouldCalculateMissingDataScoresFirst) $this->calculateMissingDataScoresFirst();
         //$shouldDoCustomCalculation = $this->sc->idealValue ===null && !empty($customScoreFunction); NOT IMPLEMENTED YET
         //determine type of calcualtion here based on dataset type, currently only 'numeric' datasets supported
         $this->calculateAll();
@@ -41,31 +41,33 @@ class SingleDatasetCalculator
     }
     protected function calculateAll()
     {
-        $this->finalScoresByCountryCode = array_merge($this->calcCountriesWithData(), $this->calcCountriesWithoutData());
+        $countriesWithData = $this->calcCountriesWithData();
+        $countriesWithoutData = $this->calcCountriesWithoutData($countriesWithData);
+        $this->finalScoresByCountryCode = array_merge($countriesWithData, $countriesWithoutData);
     }
     protected function calcCountriesWithData()
     {
         $nonNormalizedScores = null;
-        foreach ($this->context->countriesWithData as $country => $value) {
+        foreach ($this->dc->getCountriesWithData() as $country => $value) {
             $nonNormalizedScores[$country] = $this->scoreCalculate($value);
         }
         $normalizedScores = null;
-        if ($this->context->normalizationPercentage > 0) {
+        if ($this->sc['normalizationPercentage'] > 0) {
             $normalizedScores =  $this->normalizeScores($nonNormalizedScores);
         } else {
             $normalizedScores = $nonNormalizedScores;
         }
         $weightedAndNormalizedScores = null;
         foreach ($normalizedScores as $country => $score) {
-            $weightedAndNormalizedScores[$country] = $score * $this->context->weight;
+            $weightedAndNormalizedScores[$country] = $score * $this->sc['weight'];
         }
         return $weightedAndNormalizedScores;
     }
     protected function scoreCalculate($actualValue)
     {
-        $max = $this->context->maxNonNormalizedScore;
-        $onePercent = ($this->context->datasetMagnitude * 1.0) / $max;
-        $percentSimilarity = $max - (abs($actualValue - $this->idealValue) * 1.0) / $onePercent;
+        $max = config('constants.scores.max_non_normalized_score');
+        $onePercent = ($this->dc->getDatasetMagnitude() * 1.0) / $max;
+        $percentSimilarity = $max - (abs($actualValue - $this->sc['idealValue']) * 1.0) / $onePercent;
         return $percentSimilarity;
     }
     protected function normalizeScores($existingScores)
@@ -75,32 +77,32 @@ class SingleDatasetCalculator
         $rank = $totalCountries;
         $interpolatedScores = []; //interpolation algorithm is used for normalization here
         foreach ($existingScores as $country => $nnScore) { //nn = non Normalized
-            $normalizedScore = ($this->context->maxNonNormalizedScore / $totalCountries * 1.0) * $rank;
+            $normalizedScore = (config('constants.scores.max_non_normalized_score') / $totalCountries * 1.0) * $rank;
             $interpolatedScore =
                 $normalizedScore +
-                ($this->context->normalizationPercentage - 100.0) *
+                ($this->sc['normalizationPercentage'] - 100.0) *
                 (($nnScore - $normalizedScore) / (0.0 - 100.0));
             $interpolatedScores[$country] = $interpolatedScore;
             $rank--;
         }
         return $interpolatedScores;
     }
-    protected function calcCountriesWithoutData()
+    protected function calcCountriesWithoutData($countriesWithDataScores)
     {
         $missingDataHandler = new MissingDataHandler();
         $getScoreParams = [
-            'existingScores' => $this->returnObject,
-            'method' => $this->context->missingDataHandlerMethod,
-            'inputValue' => $this->context->missingDataHandlerInputValue,
+            'existingScores' => $countriesWithDataScores,
+            'method' => $this->sc['missingDataHandlerMethod'],
+            'inputValue' => $this->sc['missingDataHandlerInput'],
             'dataType' => 'numeric',
         ];
-        $missingDataScore = (new MissingDataHandler())->getScore($getScoreParams);
+        $missingDataScore = $missingDataHandler->getScore($getScoreParams);
         return $this->getCountriesWithoutDataScored($missingDataScore);
     }
     protected function getCountriesWithoutDataScored($score)
     {
         return array_map(function ($v) use ($score) {
             return $score;
-        }, $this->context->countriesWithoutData);
+        }, $this->dc->getCountriesWithoutData());
     }
 }

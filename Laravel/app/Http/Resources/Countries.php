@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Log;
 
 class Countries extends JsonResource
 {
@@ -14,7 +15,8 @@ class Countries extends JsonResource
      */
     public function toArray($request)
     {
-        return [
+        
+        return  [
             'id' => $this->id,
             'updated_at' => $this->updated_at,
             'alpha_three_code' => $this->alpha_three_code,

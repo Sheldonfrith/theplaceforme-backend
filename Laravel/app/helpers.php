@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\Log;
+
 if (!function_exists('convertSQLTypeToValidatorType')) {
     function convertSQLTypeToValidatorType($sqlType)
     {
@@ -16,10 +18,15 @@ if (!function_exists('convertSQLTypeToValidatorType')) {
     }
 }
 if (!function_exists('arrayFilterGetBoth')) {
-    function arrayFilterGetBoth($inputArray, $testingFunction)
+    function arrayFilterGetBoth(array $inputArray, $testingFunction)
     {
-        $passingArray = array_filter($inputArray, $testingFunction, ARRAY_FILTER_USE_BOTH);
-        $failingArray = array_diff($inputArray, $passingArray);
+        $passingArray=[]; $failingArray=[];
+        foreach($inputArray as $key => $val){
+            $testingFunctionPasses = $testingFunction($val, $key);
+            if ($testingFunctionPasses){
+                $passingArray[$key] = $val;
+            } else {$failingArray[$key]= $val;}
+        } 
         return [$passingArray, $failingArray];
     };
 }
@@ -67,6 +74,8 @@ function mode($arr)
     }
 }
 function array_merge_sum_values (array $array1, array $array2){
+    Log::info(count($array1));
+    Log::info(count($array2));
     $returnArray = [];
     foreach($array1 as $key=>$val){
         $returnArray[$key] = $val+$array2[$key];
