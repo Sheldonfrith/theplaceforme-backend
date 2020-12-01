@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Country;
-
+use App\Http\Resources\Countries as CountriesResource;
 class CountriesController extends Controller
 {
     /**
@@ -14,15 +14,7 @@ class CountriesController extends Controller
      */
     public function index()
     {
-        $responseObject = Country::select(
-            'id',
-            'updated_at',
-            'alpha_three_code',
-            'alpha_two_code',
-            'numeric_code',
-            'primary_name', 
-        )->where('alpha_three_code','!=',null)->get();
-        return response()->json($responseObject,200);
+        return CountriesResource::collection(Country::all());
     }
 
     /**
