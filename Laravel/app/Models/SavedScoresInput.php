@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Model;
-
+use App\Http\Requests\PostScoresRequest;
 class SavedScoresInput extends Model
 {
     use HasApiTokens;
@@ -57,4 +57,13 @@ class SavedScoresInput extends Model
     protected $appends = [
     ];
     
+    public function saveRequest(PostScoresRequest $request){
+        SavedScoresInput::create([
+            'domain' => $request->root(),
+            'name' => $request->query('name',null),
+            'description' => $request->query('description',null),
+            'user_id' =>$request->query('user_id',null),
+            'object' => $request->json()->all(),
+        ]);
+    }
 }
