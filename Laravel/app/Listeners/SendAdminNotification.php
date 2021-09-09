@@ -26,6 +26,6 @@ class SendAdminNotification
      */
     public function handle(DatasetSubmitted $event)
     {
-        
+        $datasetID = $event->datasetID;
     }
 }

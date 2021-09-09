@@ -36,22 +36,22 @@ class PostDatasetRequest extends AbstractRequest
     {
         return [
             'meta.long_name' => 'required|string',
-            'meta.data_type' => ['required', Rule::in(config('constants.datasets.supported_data_types'))],
-            'meta.country_id_type' => ['required', Rule::in(config('constants.countries.possible_id_types'))],
+            'meta.data_type' => ['required', Rule::in_array(config('constants.datasets.supported_data_types'))],
+            'meta.country_id_type' => ['required', Rule::in_array(config('constants.countries.possible_id_types'))],
             'meta.unit_description' => 'required|string',
             'meta.notes' => 'nullable|string',
             'meta.category' => ['required', 'string', Rule::in(config('constants.categories.allowed_names'))],
-            'meta.source_link' => ['nullable', 'url', 'required_if:meta.source_description,null'],
-            'meta.source_description' => ['nullable', 'string', 'required_if:meta.source_link,null'],
+            'meta.source_link' => [empty($this->json['meta']['source_description']) ? 'required' : 'nullable', 'url'],
+            'meta.source_description' => [empty($this->json['meta']['source_link']) ? 'required' : 'nullable', 'string'],
         ];
     }
     protected function getCountriesValidationRules()
     {
-        $dataTypeValidationName = convertSQLTypeToValidatorType($this->all()['meta']['data_type']);
+        $dataTypeValidationName = convertSQLTypeToValidatorType($this->json['meta']['data_type']);
         $countries = Country::all()->where('alpha_three_code', '!=', null);
         $countriesValidation = [];
         foreach ($countries as $country) {
-            $countryID = $country[$this->all()['meta']['country_id_type']];
+            $countryID = $country[$this->json['meta']['country_id_type']];
             $countriesValidation[$countryID] = 'bail|present|nullable|' . $dataTypeValidationName;
         }
         return $countriesValidation;
