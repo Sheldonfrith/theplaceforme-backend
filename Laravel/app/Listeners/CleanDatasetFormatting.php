@@ -26,6 +26,6 @@ class CleanDatasetFormatting
      */
     public function handle(DatasetSubmitted $event)
     {
-        $datasetID = $event->datasetID;
+        
     }
 }

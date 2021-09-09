@@ -39,15 +39,13 @@ class DatasetsController extends Controller
         if ($meta['country_id_type'] !== 'alpha_three_code'){
             foreach ($body as $key => $value){
                 $countryInstance = new Country();
-                $newKey = $countryInstance->convertAttribute($body['meta']['country_id_type'],$key,'alpha_three_code');
+                $newKey = $countryInstance->convertAttribute($meta['country_id_type'],$key,'alpha_three_code');
                 $countryData[$newKey] = $value;
             }
         } else {
             $countyData = $body;
         }
         $newDataset = Dataset::create(array_merge($meta,$countryData));
-        event(new DatasetSubmitted($newDataset->id));
-
         $response  = new Response('Successfully submitted this dataset for review',201,['Content-Type'=>'text/plain']);
         return $response;
     }

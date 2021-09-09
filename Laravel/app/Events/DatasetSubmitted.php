@@ -9,20 +9,23 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use App\Models\Dataset;
+use Illuminate\Support\Facades\Log;
 
 class DatasetSubmitted
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $datasetID;
+    public $dataset;
     /**
      * Create a new event instance.
      *
      * @return void
      */
-    public function __construct(int $datasetID)
+    public function __construct(Dataset $dataset)
     {
-        $this->datasetID = $datasetID;
+        $this->dataset = $dataset;
+        Log::info('constructing DatasetSubmitted event');
     }
 
     /**
